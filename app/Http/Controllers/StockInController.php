@@ -17,29 +17,27 @@ class StockInController extends Controller
         $n = StockIn::count() + 1;
         return 'SI' . str_pad($n, 4, '0', STR_PAD_LEFT);
     }
-
     private function nextDetailID(): string
     {
         $n = StockInDetail::count() + 1;
         return 'SID' . str_pad($n, 4, '0', STR_PAD_LEFT);
     }
 
-    private function nextProductID(): string
+    public function index(Request $request)
     {
-        $last = Product::orderByDesc('product_ID')->value('product_ID');
-        $num  = $last ? ((int) substr($last, 1)) + 1 : 1;
-        return 'P' . str_pad($num, 3, '0', STR_PAD_LEFT);
-    }
-
-    private function nextStockID(): string
-    {
-        $n = Stock::count() + 1;
-        return 'ST' . str_pad($n, 3, '0', STR_PAD_LEFT);
-    }
-
-    public function index()
-    {
-        $records = StockIn::with(['employee', 'details'])->orderByDesc('date_added')->get();
+        $query = StockIn::with(['employee','details'])->orderByDesc('date_added');
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function($q) use ($s) {
+                $q->where('stockin_ID', 'like', "%$s%")
+                  ->orWhere('date_added', 'like', "%$s%")
+                  ->orWhereHas('employee', fn($eq) =>
+                      $eq->where('employee_Fname', 'like', "%$s%")
+                         ->orWhere('employee_Lname', 'like', "%$s%")
+                  );
+            });
+        }
+        $records = $query->get();
         return view('stock-in.index', compact('records'));
     }
 
@@ -47,89 +45,37 @@ class StockInController extends Controller
     {
         $employees = Employee::orderBy('employee_Fname')->get();
         $products  = Product::orderBy('product_name')->get();
-        return view('stock-in.create', compact('employees', 'products'));
+        return view('stock-in.create', compact('employees','products'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'date_added'   => 'required|date',
-            'employee_ID'  => 'required|exists:employees,employee_ID',
-            'product_type' => 'required|array|min:1',
+            'date_added'    => 'required|date',
+            'employee_ID'   => 'required|exists:employees,employee_ID',
+            'product_ID'    => 'required|array|min:1',
+            'product_ID.*'  => 'required|exists:products,product_ID',
+            'quantity.*'    => 'required|integer|min:1',
+            'cost_per_unit.*' => 'required|numeric|min:0',
         ]);
 
-        $types        = $request->product_type;
-        $productIDs   = $request->product_ID ?? [];
-        $existingQty  = $request->existing_quantity ?? [];
-        $existingCost = $request->existing_cost ?? [];
-        $newNames     = $request->new_product_name ?? [];
-        $newUnits     = $request->new_product_unit ?? [];
-        $newPrices    = $request->new_unit_price ?? [];
-        $newQty       = $request->new_quantity ?? [];
-        $newCost      = $request->new_cost ?? [];
-
-        foreach ($types as $i => $type) {
-            $row = 'Row ' . ($i + 1);
-            if ($type === 'existing') {
-                if (empty($productIDs[$i]))
-                    return back()->withInput()->withErrors(["$row: Please select an existing product."]);
-                if (empty($existingQty[$i]) || $existingQty[$i] < 1)
-                    return back()->withInput()->withErrors(["$row: Quantity must be at least 1."]);
-                if (!isset($existingCost[$i]) || $existingCost[$i] < 0)
-                    return back()->withInput()->withErrors(["$row: Cost per unit is required."]);
-            } else {
-                if (empty($newNames[$i]))
-                    return back()->withInput()->withErrors(["$row: New product name is required."]);
-                if (empty($newUnits[$i]))
-                    return back()->withInput()->withErrors(["$row: Unit is required for new product."]);
-                if (!isset($newPrices[$i]) || $newPrices[$i] < 0)
-                    return back()->withInput()->withErrors(["$row: Unit price is required for new product."]);
-                if (empty($newQty[$i]) || $newQty[$i] < 1)
-                    return back()->withInput()->withErrors(["$row: Quantity must be at least 1."]);
-                if (!isset($newCost[$i]) || $newCost[$i] < 0)
-                    return back()->withInput()->withErrors(["$row: Cost per unit is required."]);
-            }
-        }
-
-        DB::transaction(function () use ($request, $types, $productIDs, $existingQty, $existingCost, $newNames, $newUnits, $newPrices, $newQty, $newCost) {
+        DB::transaction(function () use ($request) {
             $stockIn = StockIn::create([
                 'stockin_ID'  => $this->nextID(),
                 'date_added'  => $request->date_added,
                 'employee_ID' => $request->employee_ID,
             ]);
 
-            foreach ($types as $i => $type) {
-                if ($type === 'new') {
-                    $pid = $this->nextProductID();
-                    Product::create([
-                        'product_ID'   => $pid,
-                        'product_name' => $newNames[$i],
-                        'p_unit'       => $newUnits[$i],
-                        'unit_price'   => $newPrices[$i],
-                    ]);
-                    Stock::create([
-                        'stock_ID'   => $this->nextStockID(),
-                        'product_ID' => $pid,
-                        'quantity'   => 0,
-                        'min_stock'  => 20,
-                    ]);
-                    $qty  = $newQty[$i];
-                    $cost = $newCost[$i];
-                } else {
-                    $pid  = $productIDs[$i];
-                    $qty  = $existingQty[$i];
-                    $cost = $existingCost[$i];
-                }
-
+            foreach ($request->product_ID as $i => $pid) {
                 StockInDetail::create([
                     'stockin_details_ID' => $this->nextDetailID(),
                     'stockin_ID'         => $stockIn->stockin_ID,
                     'product_ID'         => $pid,
-                    'quantity'           => $qty,
-                    'cost_per_unit'      => $cost,
+                    'quantity'           => $request->quantity[$i],
+                    'cost_per_unit'      => $request->cost_per_unit[$i],
                 ]);
-
-                Stock::where('product_ID', $pid)->increment('quantity', $qty);
+                Stock::where('product_ID', $pid)
+                    ->increment('quantity', $request->quantity[$i]);
             }
         });
 
@@ -138,7 +84,7 @@ class StockInController extends Controller
 
     public function show(StockIn $stockIn)
     {
-        $stockIn->load(['employee', 'details.product']);
+        $stockIn->load(['employee','details.product']);
         return view('stock-in.show', compact('stockIn'));
     }
 

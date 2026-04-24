@@ -30,7 +30,10 @@ class EmployeeController extends Controller
         return view('employees.index', compact('employees'));
     }
 
-    public function create() { return view('employees.create'); }
+    public function create()
+    {
+        return view('employees.create');
+    }
 
     public function store(Request $request)
     {
@@ -43,7 +46,10 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee added.');
     }
 
-    public function edit(Employee $employee) { return view('employees.edit', compact('employee')); }
+    public function edit(Employee $employee)
+    {
+        return view('employees.edit', compact('employee'));
+    }
 
     public function update(Request $request, Employee $employee)
     {

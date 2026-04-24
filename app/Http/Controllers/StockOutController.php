@@ -23,9 +23,21 @@ class StockOutController extends Controller
         return 'SOD' . str_pad($n, 4, '0', STR_PAD_LEFT);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $records = StockOut::with(['employee','details'])->orderByDesc('date_issuance')->get();
+        $query = StockOut::with(['employee','details'])->orderByDesc('date_issuance');
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function($q) use ($s) {
+                $q->where('stockout_ID', 'like', "%$s%")
+                  ->orWhere('date_issuance', 'like', "%$s%")
+                  ->orWhereHas('employee', fn($eq) =>
+                      $eq->where('employee_Fname', 'like', "%$s%")
+                         ->orWhere('employee_Lname', 'like', "%$s%")
+                  );
+            });
+        }
+        $records = $query->get();
         return view('stock-out.index', compact('records'));
     }
 
