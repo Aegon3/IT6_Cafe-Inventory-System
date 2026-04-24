@@ -14,16 +14,23 @@ class EmployeeController extends Controller
         return 'E' . str_pad($num, 3, '0', STR_PAD_LEFT);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $employees = Employee::orderBy('employee_ID')->get();
+        $query = Employee::orderBy('employee_ID');
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function($q) use ($s) {
+                $q->where('employee_Fname', 'like', "%$s%")
+                  ->orWhere('employee_Lname', 'like', "%$s%")
+                  ->orWhere('employee_ID', 'like', "%$s%")
+                  ->orWhere('e_role', 'like', "%$s%");
+            });
+        }
+        $employees = $query->get();
         return view('employees.index', compact('employees'));
     }
 
-    public function create()
-    {
-        return view('employees.create');
-    }
+    public function create() { return view('employees.create'); }
 
     public function store(Request $request)
     {
@@ -36,10 +43,7 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('success', 'Employee added.');
     }
 
-    public function edit(Employee $employee)
-    {
-        return view('employees.edit', compact('employee'));
-    }
+    public function edit(Employee $employee) { return view('employees.edit', compact('employee')); }
 
     public function update(Request $request, Employee $employee)
     {

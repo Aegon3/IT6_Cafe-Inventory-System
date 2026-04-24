@@ -50,7 +50,7 @@
     <div class="card-title">Recent Stock-In Transactions</div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>ID</th><th>Date</th><th>Handled By</th><th>Items</th></tr></thead>
+            <thead><tr><th>ID</th><th>Date</th><th>Handled By</th><th>Items</th><th>Action</th></tr></thead>
             <tbody>
             @forelse($recentStockIn as $r)
             <tr>
@@ -58,9 +58,32 @@
                 <td>{{ $r->date_added }}</td>
                 <td>{{ $r->employee->full_name }}</td>
                 <td>{{ $r->details->count() }} item(s)</td>
+                <td><a href="{{ route('stock-in.show', $r->stockin_ID) }}" class="btn btn-secondary btn-sm">View</a></td>
             </tr>
             @empty
-            <tr><td colspan="4" style="color:var(--muted)">No records yet.</td></tr>
+            <tr><td colspan="5" style="color:var(--muted)">No records yet.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">Recent Stock-Out Transactions</div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>ID</th><th>Date</th><th>Handled By</th><th>Items</th><th>Action</th></tr></thead>
+            <tbody>
+            @forelse($recentStockOut as $r)
+            <tr>
+                <td>{{ $r->stockout_ID }}</td>
+                <td>{{ $r->date_issuance }}</td>
+                <td>{{ $r->employee->full_name }}</td>
+                <td>{{ $r->details->count() }} item(s)</td>
+                <td><a href="{{ route('stock-out.show', $r->stockout_ID) }}" class="btn btn-secondary btn-sm">View</a></td>
+            </tr>
+            @empty
+            <tr><td colspan="5" style="color:var(--muted)">No records yet.</td></tr>
             @endforelse
             </tbody>
         </table>

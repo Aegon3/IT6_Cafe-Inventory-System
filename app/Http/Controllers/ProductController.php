@@ -15,16 +15,22 @@ class ProductController extends Controller
         return 'P' . str_pad($num, 3, '0', STR_PAD_LEFT);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::orderBy('product_ID')->get();
+        $query = Product::orderBy('product_ID');
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function($q) use ($s) {
+                $q->where('product_name', 'like', "%$s%")
+                  ->orWhere('product_ID', 'like', "%$s%")
+                  ->orWhere('p_unit', 'like', "%$s%");
+            });
+        }
+        $products = $query->get();
         return view('products.index', compact('products'));
     }
 
-    public function create()
-    {
-        return view('products.create');
-    }
+    public function create() { return view('products.create'); }
 
     public function store(Request $request)
     {
@@ -33,24 +39,18 @@ class ProductController extends Controller
             'p_unit'       => 'required|string|max:50',
             'unit_price'   => 'required|numeric|min:0',
         ]);
-
         $id = $this->nextID();
         Product::create(array_merge(['product_ID' => $id], $data));
-
         $stockNum = Stock::count() + 1;
         Stock::create([
             'stock_ID'   => 'ST' . str_pad($stockNum, 3, '0', STR_PAD_LEFT),
             'product_ID' => $id,
             'quantity'   => 0,
         ]);
-
         return redirect()->route('products.index')->with('success', 'Product added.');
     }
 
-    public function edit(Product $product)
-    {
-        return view('products.edit', compact('product'));
-    }
+    public function edit(Product $product) { return view('products.edit', compact('product')); }
 
     public function update(Request $request, Product $product)
     {

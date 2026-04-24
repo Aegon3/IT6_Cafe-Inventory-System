@@ -27,9 +27,14 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $recentStockOut = StockOut::with(['employee','details'])
+            ->orderByDesc('date_issuance')
+            ->limit(5)
+            ->get();
+
         return view('dashboard', compact(
             'totalProducts','totalEmployees','totalStockIn',
-            'totalStockOut','lowStock','recentStockIn'
+            'totalStockOut','lowStock','recentStockIn','recentStockOut'
         ));
     }
 }
