@@ -1,0 +1,20 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void {
+        Schema::create('products', function (Blueprint $table) {
+            $table->string('product_ID', 50)->primary();
+            $table->string('product_name', 255);
+            $table->string('p_unit', 50);
+            $table->decimal('unit_price', 10, 2);
+            $table->timestamps();
+        });
+    }
+    public function down(): void {
+        Schema::dropIfExists('products');
+    }
+};
