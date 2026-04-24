@@ -88,6 +88,53 @@ class StockInController extends Controller
         return view('stock-in.show', compact('stockIn'));
     }
 
+    public function edit(StockIn $stockIn)
+    {
+        $stockIn->load(['employee', 'details.product']);
+        $employees = \App\Models\Employee::orderBy('employee_Fname')->get();
+        return view('stock-in.edit', compact('stockIn', 'employees'));
+    }
+
+    public function update(Request $request, StockIn $stockIn)
+    {
+        $request->validate([
+            'date_added'    => 'required|date',
+            'employee_ID'   => 'required|exists:employees,employee_ID',
+            'detail_id'     => 'required|array',
+            'quantity'      => 'required|array',
+            'quantity.*'    => 'required|integer|min:1',
+            'cost_per_unit' => 'required|array',
+            'cost_per_unit.*' => 'required|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($request, $stockIn) {
+            // Reverse old stock quantities
+            foreach ($stockIn->details as $d) {
+                Stock::where('product_ID', $d->product_ID)->decrement('quantity', $d->quantity);
+            }
+
+            // Update header
+            $stockIn->update([
+                'date_added'  => $request->date_added,
+                'employee_ID' => $request->employee_ID,
+            ]);
+
+            // Update each detail and re-apply new quantities
+            foreach ($request->detail_id as $i => $detailId) {
+                $detail = StockInDetail::find($detailId);
+                if ($detail) {
+                    $detail->update([
+                        'quantity'      => $request->quantity[$i],
+                        'cost_per_unit' => $request->cost_per_unit[$i],
+                    ]);
+                    Stock::where('product_ID', $detail->product_ID)->increment('quantity', $request->quantity[$i]);
+                }
+            }
+        });
+
+        return redirect()->route('stock-in.show', $stockIn->stockin_ID)->with('success', 'Stock-In updated.');
+    }
+
     public function destroy(StockIn $stockIn)
     {
         DB::transaction(function () use ($stockIn) {

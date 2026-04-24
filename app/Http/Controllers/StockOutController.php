@@ -93,6 +93,60 @@ class StockOutController extends Controller
         return view('stock-out.show', compact('stockOut'));
     }
 
+    public function edit(StockOut $stockOut)
+    {
+        $stockOut->load(['employee', 'details.product']);
+        $employees = \App\Models\Employee::orderBy('employee_Fname')->get();
+        return view('stock-out.edit', compact('stockOut', 'employees'));
+    }
+
+    public function update(Request $request, StockOut $stockOut)
+    {
+        $request->validate([
+            'date_issuance' => 'required|date',
+            'employee_ID'   => 'required|exists:employees,employee_ID',
+            'detail_id'     => 'required|array',
+            'quantity'      => 'required|array',
+            'quantity.*'    => 'required|integer|min:1',
+        ]);
+
+        // Check stock availability (excluding current quantities already deducted)
+        foreach ($request->detail_id as $i => $detailId) {
+            $detail = \App\Models\StockOutDetail::find($detailId);
+            if ($detail) {
+                $stock = Stock::where('product_ID', $detail->product_ID)->first();
+                $available = $stock ? $stock->quantity + $detail->quantity : 0;
+                if ($request->quantity[$i] > $available) {
+                    return back()->withInput()->withErrors(["Insufficient stock for item " . ($i + 1) . "."]);
+                }
+            }
+        }
+
+        DB::transaction(function () use ($request, $stockOut) {
+            // Restore old stock quantities
+            foreach ($stockOut->details as $d) {
+                Stock::where('product_ID', $d->product_ID)->increment('quantity', $d->quantity);
+            }
+
+            // Update header
+            $stockOut->update([
+                'date_issuance' => $request->date_issuance,
+                'employee_ID'   => $request->employee_ID,
+            ]);
+
+            // Update each detail and deduct new quantities
+            foreach ($request->detail_id as $i => $detailId) {
+                $detail = \App\Models\StockOutDetail::find($detailId);
+                if ($detail) {
+                    $detail->update(['quantity' => $request->quantity[$i]]);
+                    Stock::where('product_ID', $detail->product_ID)->decrement('quantity', $request->quantity[$i]);
+                }
+            }
+        });
+
+        return redirect()->route('stock-out.show', $stockOut->stockout_ID)->with('success', 'Stock-Out updated.');
+    }
+
     public function destroy(StockOut $stockOut)
     {
         DB::transaction(function () use ($stockOut) {

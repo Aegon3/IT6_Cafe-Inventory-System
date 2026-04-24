@@ -26,6 +26,7 @@
                 <td>{{ $r->details->count() }} item(s)</td>
                 <td>
                     <a href="{{ route('stock-in.show', $r->stockin_ID) }}" class="btn btn-secondary btn-sm">View</a>
+                    <a href="{{ route('stock-in.edit', $r->stockin_ID) }}" class="btn btn-secondary btn-sm">Edit</a>
                     <form method="POST" action="{{ route('stock-in.destroy', $r->stockin_ID) }}" style="display:inline" onsubmit="return confirm('Delete and reverse stock levels?')">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
