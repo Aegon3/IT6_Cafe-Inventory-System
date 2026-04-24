@@ -1,168 +1,42 @@
-<?php
+@extends('layouts.app')
+@section('title', 'Stock In')
 
-namespace App\Http\Controllers;
-
-use App\Models\StockIn;
-use App\Models\StockInDetail;
-use App\Models\Employee;
-use App\Models\Product;
-use App\Models\Stock;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-
-class StockInController extends Controller
-{
-    private function nextID(): string
-    {
-        $n = StockIn::count() + 1;
-        return 'SI' . str_pad($n, 4, '0', STR_PAD_LEFT);
-    }
-
-    private function nextDetailID(): string
-    {
-        $n = StockInDetail::count() + 1;
-        return 'SID' . str_pad($n, 4, '0', STR_PAD_LEFT);
-    }
-
-    private function nextProductID(): string
-    {
-        $last = Product::orderByDesc('product_ID')->value('product_ID');
-        $num  = $last ? ((int) substr($last, 1)) + 1 : 1;
-        return 'P' . str_pad($num, 3, '0', STR_PAD_LEFT);
-    }
-
-    private function nextStockID(): string
-    {
-        $n = Stock::count() + 1;
-        return 'ST' . str_pad($n, 3, '0', STR_PAD_LEFT);
-    }
-
-    public function index(Request $request)
-    {
-        $query = StockIn::with(['employee','details'])->orderByDesc('date_added');
-        if ($request->filled('search')) {
-            $s = $request->search;
-            $query->where(function($q) use ($s) {
-                $q->where('stockin_ID', 'like', "%$s%")
-                  ->orWhere('date_added', 'like', "%$s%")
-                  ->orWhereHas('employee', fn($eq) =>
-                      $eq->where('employee_Fname', 'like', "%$s%")
-                         ->orWhere('employee_Lname', 'like', "%$s%")
-                  );
-            });
-        }
-        $records = $query->get();
-        return view('stock-in.index', compact('records'));
-    }
-
-    public function create()
-    {
-        $employees = Employee::orderBy('employee_Fname')->get();
-        $products  = Product::orderBy('product_name')->get();
-        return view('stock-in.create', compact('employees', 'products'));
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'date_added'   => 'required|date',
-            'employee_ID'  => 'required|exists:employees,employee_ID',
-            'product_type' => 'required|array|min:1',
-        ]);
-
-        $types        = $request->product_type;
-        $productIDs   = $request->product_ID ?? [];
-        $existingQty  = $request->existing_quantity ?? [];
-        $existingCost = $request->existing_cost ?? [];
-        $newNames     = $request->new_product_name ?? [];
-        $newUnits     = $request->new_product_unit ?? [];
-        $newPrices    = $request->new_unit_price ?? [];
-        $newQty       = $request->new_quantity ?? [];
-        $newCost      = $request->new_cost ?? [];
-
-        foreach ($types as $i => $type) {
-            $row = 'Row ' . ($i + 1);
-            if ($type === 'existing') {
-                if (empty($productIDs[$i]))
-                    return back()->withInput()->withErrors(["$row: Please select an existing product."]);
-                if (empty($existingQty[$i]) || $existingQty[$i] < 1)
-                    return back()->withInput()->withErrors(["$row: Quantity must be at least 1."]);
-                if (!isset($existingCost[$i]) || $existingCost[$i] < 0)
-                    return back()->withInput()->withErrors(["$row: Cost per unit is required."]);
-            } else {
-                if (empty($newNames[$i]))
-                    return back()->withInput()->withErrors(["$row: New product name is required."]);
-                if (empty($newUnits[$i]))
-                    return back()->withInput()->withErrors(["$row: Unit is required for new product."]);
-                if (!isset($newPrices[$i]) || $newPrices[$i] < 0)
-                    return back()->withInput()->withErrors(["$row: Unit price is required for new product."]);
-                if (empty($newQty[$i]) || $newQty[$i] < 1)
-                    return back()->withInput()->withErrors(["$row: Quantity must be at least 1."]);
-                if (!isset($newCost[$i]) || $newCost[$i] < 0)
-                    return back()->withInput()->withErrors(["$row: Cost per unit is required."]);
-            }
-        }
-
-        DB::transaction(function () use ($request, $types, $productIDs, $existingQty, $existingCost, $newNames, $newUnits, $newPrices, $newQty, $newCost) {
-            $stockIn = StockIn::create([
-                'stockin_ID'  => $this->nextID(),
-                'date_added'  => $request->date_added,
-                'employee_ID' => $request->employee_ID,
-            ]);
-
-            foreach ($types as $i => $type) {
-                if ($type === 'new') {
-                    $pid = $this->nextProductID();
-                    Product::create([
-                        'product_ID'   => $pid,
-                        'product_name' => $newNames[$i],
-                        'p_unit'       => $newUnits[$i],
-                        'unit_price'   => $newPrices[$i],
-                    ]);
-                    Stock::create([
-                        'stock_ID'   => $this->nextStockID(),
-                        'product_ID' => $pid,
-                        'quantity'   => 0,
-                        'min_stock'  => 20,
-                    ]);
-                    $qty  = $newQty[$i];
-                    $cost = $newCost[$i];
-                } else {
-                    $pid  = $productIDs[$i];
-                    $qty  = $existingQty[$i];
-                    $cost = $existingCost[$i];
-                }
-
-                StockInDetail::create([
-                    'stockin_details_ID' => $this->nextDetailID(),
-                    'stockin_ID'         => $stockIn->stockin_ID,
-                    'product_ID'         => $pid,
-                    'quantity'           => $qty,
-                    'cost_per_unit'      => $cost,
-                ]);
-
-                Stock::where('product_ID', $pid)->increment('quantity', $qty);
-            }
-        });
-
-        return redirect()->route('stock-in.index')->with('success', 'Stock-In recorded.');
-    }
-
-    public function show(StockIn $stockIn)
-    {
-        $stockIn->load(['employee', 'details.product']);
-        return view('stock-in.show', compact('stockIn'));
-    }
-
-    public function destroy(StockIn $stockIn)
-    {
-        DB::transaction(function () use ($stockIn) {
-            foreach ($stockIn->details as $d) {
-                Stock::where('product_ID', $d->product_ID)
-                    ->decrement('quantity', $d->quantity);
-            }
-            $stockIn->delete();
-        });
-        return redirect()->route('stock-in.index')->with('success', 'Stock-In deleted and stock reversed.');
-    }
-}
+@section('content')
+<div class="card">
+    <div class="card-title">Stock-In Records</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px">
+        <a href="{{ route('stock-in.create') }}" class="btn btn-primary">Record Stock-In</a>
+        <form method="GET" action="{{ route('stock-in.index') }}" style="display:flex;gap:8px">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by ID, date, employee..." style="padding:7px 10px;border:1px solid var(--border);border-radius:3px;font-size:.85rem;background:var(--bg);color:var(--text);width:260px">
+            <button type="submit" class="btn btn-secondary">Search</button>
+            @if(request('search'))
+                <a href="{{ route('stock-in.index') }}" class="btn btn-secondary">Clear</a>
+            @endif
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>ID</th><th>Date</th><th>Handled By</th><th>Items</th><th>Actions</th></tr></thead>
+            <tbody>
+            @forelse($records as $r)
+            <tr>
+                <td>{{ $r->stockin_ID }}</td>
+                <td>{{ $r->date_added }}</td>
+                <td>{{ $r->employee->full_name }}</td>
+                <td>{{ $r->details->count() }} item(s)</td>
+                <td>
+                    <a href="{{ route('stock-in.show', $r->stockin_ID) }}" class="btn btn-secondary btn-sm">View</a>
+                    <form method="POST" action="{{ route('stock-in.destroy', $r->stockin_ID) }}" style="display:inline" onsubmit="return confirm('Delete and reverse stock levels?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            @empty
+            <tr><td colspan="5" style="color:var(--muted)">{{ request('search') ? 'No records matched your search.' : 'No records yet.' }}</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+@endsection
