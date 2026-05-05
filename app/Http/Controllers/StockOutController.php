@@ -14,21 +14,24 @@ class StockOutController extends Controller
 {
     private function nextID(): string
     {
-        $n = StockOut::count() + 1;
+        $last = StockOut::orderByDesc('stockout_ID')->value('stockout_ID');
+        $n = $last ? ((int) substr($last, 2)) + 1 : 1;
         return 'SO' . str_pad($n, 4, '0', STR_PAD_LEFT);
     }
+
     private function nextDetailID(): string
     {
-        $n = StockOutDetail::count() + 1;
+        $last = StockOutDetail::orderByDesc('stockout_details_ID')->value('stockout_details_ID');
+        $n = $last ? ((int) substr($last, 3)) + 1 : 1;
         return 'SOD' . str_pad($n, 4, '0', STR_PAD_LEFT);
     }
 
     public function index(Request $request)
     {
-        $query = StockOut::with(['employee','details'])->orderByDesc('date_issuance');
+        $query = StockOut::with(['employee', 'details'])->orderByDesc('date_issuance');
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(function($q) use ($s) {
+            $query->where(function ($q) use ($s) {
                 $q->where('stockout_ID', 'like', "%$s%")
                   ->orWhere('date_issuance', 'like', "%$s%")
                   ->orWhereHas('employee', fn($eq) =>
@@ -45,7 +48,7 @@ class StockOutController extends Controller
     {
         $employees = Employee::orderBy('employee_Fname')->get();
         $products  = Product::with('stock')->orderBy('product_name')->get();
-        return view('stock-out.create', compact('employees','products'));
+        return view('stock-out.create', compact('employees', 'products'));
     }
 
     public function store(Request $request)
@@ -67,9 +70,9 @@ class StockOutController extends Controller
 
         DB::transaction(function () use ($request) {
             $stockOut = StockOut::create([
-                'stockout_ID'    => $this->nextID(),
-                'date_issuance'  => $request->date_issuance,
-                'employee_ID'    => $request->employee_ID,
+                'stockout_ID'   => $this->nextID(),
+                'date_issuance' => $request->date_issuance,
+                'employee_ID'   => $request->employee_ID,
             ]);
 
             foreach ($request->product_ID as $i => $pid) {
@@ -79,8 +82,7 @@ class StockOutController extends Controller
                     'product_ID'          => $pid,
                     'quantity'            => $request->quantity[$i],
                 ]);
-                Stock::where('product_ID', $pid)
-                    ->decrement('quantity', $request->quantity[$i]);
+                Stock::where('product_ID', $pid)->decrement('quantity', $request->quantity[$i]);
             }
         });
 
@@ -89,14 +91,14 @@ class StockOutController extends Controller
 
     public function show(StockOut $stockOut)
     {
-        $stockOut->load(['employee','details.product']);
+        $stockOut->load(['employee', 'details.product']);
         return view('stock-out.show', compact('stockOut'));
     }
 
     public function edit(StockOut $stockOut)
     {
         $stockOut->load(['employee', 'details.product']);
-        $employees = \App\Models\Employee::orderBy('employee_Fname')->get();
+        $employees = Employee::orderBy('employee_Fname')->get();
         return view('stock-out.edit', compact('stockOut', 'employees'));
     }
 
@@ -110,33 +112,27 @@ class StockOutController extends Controller
             'quantity.*'    => 'required|integer|min:1',
         ]);
 
-        // Check stock availability (excluding current quantities already deducted)
         foreach ($request->detail_id as $i => $detailId) {
-            $detail = \App\Models\StockOutDetail::find($detailId);
+            $detail = StockOutDetail::find($detailId);
             if ($detail) {
-                $stock = Stock::where('product_ID', $detail->product_ID)->first();
+                $stock     = Stock::where('product_ID', $detail->product_ID)->first();
                 $available = $stock ? $stock->quantity + $detail->quantity : 0;
                 if ($request->quantity[$i] > $available) {
-                    return back()->withInput()->withErrors(["Insufficient stock for item " . ($i + 1) . "."]);
+                    return back()->withInput()->withErrors(['quantity' => 'Insufficient stock for item ' . ($i + 1) . '.']);
                 }
             }
         }
 
         DB::transaction(function () use ($request, $stockOut) {
-            // Restore old stock quantities
             foreach ($stockOut->details as $d) {
                 Stock::where('product_ID', $d->product_ID)->increment('quantity', $d->quantity);
             }
-
-            // Update header
             $stockOut->update([
                 'date_issuance' => $request->date_issuance,
                 'employee_ID'   => $request->employee_ID,
             ]);
-
-            // Update each detail and deduct new quantities
             foreach ($request->detail_id as $i => $detailId) {
-                $detail = \App\Models\StockOutDetail::find($detailId);
+                $detail = StockOutDetail::find($detailId);
                 if ($detail) {
                     $detail->update(['quantity' => $request->quantity[$i]]);
                     Stock::where('product_ID', $detail->product_ID)->decrement('quantity', $request->quantity[$i]);
@@ -151,8 +147,7 @@ class StockOutController extends Controller
     {
         DB::transaction(function () use ($stockOut) {
             foreach ($stockOut->details as $d) {
-                Stock::where('product_ID', $d->product_ID)
-                    ->increment('quantity', $d->quantity);
+                Stock::where('product_ID', $d->product_ID)->increment('quantity', $d->quantity);
             }
             $stockOut->delete();
         });

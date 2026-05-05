@@ -34,9 +34,9 @@
             <tbody>
             @foreach($lowStock as $s)
             <tr>
-                <td>{{ $s->product->product_name }}</td>
+                <td>{{ $s->product?->product_name ?? 'Unknown' }}</td>
                 <td>{{ $s->quantity }}</td>
-                <td>{{ $s->product->p_unit }}</td>
+                <td>{{ $s->product?->p_unit ?? '—' }}</td>
                 <td><span class="badge badge-low">Low Stock</span></td>
             </tr>
             @endforeach
@@ -56,7 +56,7 @@
             <tr>
                 <td>{{ $r->stockin_ID }}</td>
                 <td>{{ $r->date_added }}</td>
-                <td>{{ $r->employee->full_name }}</td>
+                <td>{{ $r->employee?->full_name ?? 'Unknown' }}</td>
                 <td>{{ $r->details->count() }} item(s)</td>
                 <td><a href="{{ route('stock-in.show', $r->stockin_ID) }}" class="btn btn-secondary btn-sm">View</a></td>
             </tr>
@@ -78,7 +78,7 @@
             <tr>
                 <td>{{ $r->stockout_ID }}</td>
                 <td>{{ $r->date_issuance }}</td>
-                <td>{{ $r->employee->full_name }}</td>
+                <td>{{ $r->employee?->full_name ?? 'Unknown' }}</td>
                 <td>{{ $r->details->count() }} item(s)</td>
                 <td><a href="{{ route('stock-out.show', $r->stockout_ID) }}" class="btn btn-secondary btn-sm">View</a></td>
             </tr>

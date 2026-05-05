@@ -4,6 +4,7 @@
 @section('content')
 <div class="card">
     <div class="card-title">Record Stock-In</div>
+
     <form method="POST" action="{{ route('stock-in.store') }}">
         @csrf
         <div class="form-grid">
@@ -42,11 +43,21 @@
                 <div class="existing-section" id="existing-0">
                     <div class="form-grid">
                         <div class="form-group">
+                            <label>Stock ID</label>
+                            <input type="text" id="existing_stock_id_0" readonly
+                                style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed"
+                                placeholder="Auto-filled">
+                        </div>
+                        <div class="form-group">
                             <label>Product</label>
-                            <select name="product_ID[0]" onchange="fillCost(this, 0)">
+                            <select name="product_ID[0]" onchange="fillExisting(this, 0)">
                                 <option value="">Select product...</option>
                                 @foreach($products as $p)
-                                <option value="{{ $p->product_ID }}" data-price="{{ $p->unit_price }}">{{ $p->product_name }}</option>
+                                <option value="{{ $p->product_ID }}"
+                                    data-price="{{ $p->unit_price }}"
+                                    data-stock="{{ $stockMap[$p->product_ID]->stock_ID ?? '' }}">
+                                    {{ $p->product_name }}
+                                </option>
                                 @endforeach
                             </select>
                         </div>
@@ -64,6 +75,11 @@
                 {{-- New product --}}
                 <div class="new-section" id="new-0" style="display:none">
                     <div class="form-grid">
+                        <div class="form-group">
+                            <label>Stock ID</label>
+                            <input type="text" readonly value="(auto-assigned)"
+                                style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed">
+                        </div>
                         <div class="form-group">
                             <label>Product Name</label>
                             <input type="text" name="new_product_name[0]" placeholder="e.g. Arabica Beans">
@@ -88,6 +104,7 @@
                 </div>
             </div>
         </div>
+
         <button type="button" class="add-row-btn" onclick="addRow()">+ Add Another Item</button>
 
         <div class="form-actions">
@@ -106,35 +123,44 @@ const priceMap = {
     @endforeach
 };
 
-const existingOpts = `@foreach($products as $p)<option value="{{ $p->product_ID }}" data-price="{{ $p->unit_price }}">{{ $p->product_name }}</option>@endforeach`;
+const stockIDMap = {
+    @foreach($products as $p)
+    "{{ $p->product_ID }}": "{{ $stockMap[$p->product_ID]->stock_ID ?? '' }}",
+    @endforeach
+};
 
-function fillCost(selectEl, idx) {
-    const pid = selectEl.value;
-    const costInput = document.getElementById('existing_cost_' + idx);
-    if (pid && priceMap[pid] !== undefined) {
-        costInput.value = priceMap[pid].toFixed(2);
+const existingOpts = `@foreach($products as $p)<option value="{{ $p->product_ID }}" data-price="{{ $p->unit_price }}" data-stock="{{ $stockMap[$p->product_ID]->stock_ID ?? '' }}">{{ $p->product_name }}</option>@endforeach`;
+
+function fillExisting(selectEl, idx) {
+    const pid          = selectEl.value;
+    const costInput    = document.getElementById('existing_cost_' + idx);
+    const stockIDInput = document.getElementById('existing_stock_id_' + idx);
+    if (pid) {
+        if (priceMap[pid]   !== undefined) costInput.value    = priceMap[pid].toFixed(2);
+        if (stockIDMap[pid] !== undefined) stockIDInput.value = stockIDMap[pid];
     } else {
-        costInput.value = '';
+        costInput.value    = '';
+        stockIDInput.value = '';
     }
 }
 
 function toggleType(radio, idx) {
     const existingEl = document.getElementById('existing-' + idx);
-    const newEl = document.getElementById('new-' + idx);
+    const newEl      = document.getElementById('new-' + idx);
     if (radio.value === 'existing') {
         existingEl.style.display = '';
-        newEl.style.display = 'none';
+        newEl.style.display      = 'none';
     } else {
         existingEl.style.display = 'none';
-        newEl.style.display = '';
+        newEl.style.display      = '';
     }
 }
 
 function addRow() {
-    const idx = rowCount++;
+    const idx  = rowCount++;
     const wrap = document.getElementById('detail-rows');
-    const div = document.createElement('div');
-    div.className = 'detail-row';
+    const div  = document.createElement('div');
+    div.className     = 'detail-row';
     div.style.cssText = 'display:block;border-bottom:1px dashed var(--border);padding-bottom:14px;margin-bottom:14px';
     div.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -150,15 +176,24 @@ function addRow() {
 
         <div class="existing-section" id="existing-${idx}">
             <div class="form-grid">
-                <div class="form-group"><label>Product</label>
-                    <select name="product_ID[${idx}]" onchange="fillCost(this, ${idx})">
+                <div class="form-group">
+                    <label>Stock ID</label>
+                    <input type="text" id="existing_stock_id_${idx}" readonly
+                        style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed"
+                        placeholder="Auto-filled">
+                </div>
+                <div class="form-group">
+                    <label>Product</label>
+                    <select name="product_ID[${idx}]" onchange="fillExisting(this, ${idx})">
                         <option value="">Select product...</option>${existingOpts}
                     </select>
                 </div>
-                <div class="form-group"><label>Quantity</label>
+                <div class="form-group">
+                    <label>Quantity</label>
                     <input type="number" name="existing_quantity[${idx}]" min="1" placeholder="0">
                 </div>
-                <div class="form-group"><label>Cost/Unit (PHP)</label>
+                <div class="form-group">
+                    <label>Cost/Unit (PHP)</label>
                     <input type="number" name="existing_cost[${idx}]" id="existing_cost_${idx}" step="0.01" min="0" placeholder="Auto-filled">
                 </div>
             </div>
@@ -166,19 +201,29 @@ function addRow() {
 
         <div class="new-section" id="new-${idx}" style="display:none">
             <div class="form-grid">
-                <div class="form-group"><label>Product Name</label>
+                <div class="form-group">
+                    <label>Stock ID</label>
+                    <input type="text" readonly value="(auto-assigned)"
+                        style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed">
+                </div>
+                <div class="form-group">
+                    <label>Product Name</label>
                     <input type="text" name="new_product_name[${idx}]" placeholder="e.g. Arabica Beans">
                 </div>
-                <div class="form-group"><label>Unit</label>
+                <div class="form-group">
+                    <label>Unit</label>
                     <input type="text" name="new_product_unit[${idx}]" placeholder="e.g. kg, pcs, box">
                 </div>
-                <div class="form-group"><label>Unit Price (PHP)</label>
+                <div class="form-group">
+                    <label>Unit Price (PHP)</label>
                     <input type="number" name="new_unit_price[${idx}]" step="0.01" min="0" placeholder="0.00">
                 </div>
-                <div class="form-group"><label>Quantity</label>
+                <div class="form-group">
+                    <label>Quantity</label>
                     <input type="number" name="new_quantity[${idx}]" min="1" placeholder="0">
                 </div>
-                <div class="form-group"><label>Cost/Unit (PHP)</label>
+                <div class="form-group">
+                    <label>Cost/Unit (PHP)</label>
                     <input type="number" name="new_cost[${idx}]" step="0.01" min="0" placeholder="0.00">
                 </div>
             </div>

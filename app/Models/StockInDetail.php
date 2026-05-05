@@ -10,8 +10,8 @@ class StockInDetail extends Model
     protected $primaryKey = 'stockin_details_ID';
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['stockin_details_ID','stockin_ID','product_ID','quantity','cost_per_unit'];
+    protected $fillable = ['stockin_details_ID', 'stockin_ID', 'product_ID', 'quantity', 'cost_per_unit'];
 
-    public function stockIn() { return $this->belongsTo(StockIn::class, 'stockin_ID', 'stockin_ID'); }
-    public function product() { return $this->belongsTo(Product::class, 'product_ID', 'product_ID'); }
+    public function stockIn()  { return $this->belongsTo(StockIn::class,  'stockin_ID',  'stockin_ID'); }
+    public function product()  { return $this->belongsTo(Product::class,  'product_ID',  'product_ID'); }
 }

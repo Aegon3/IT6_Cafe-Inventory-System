@@ -40,5 +40,38 @@
             </tbody>
         </table>
     </div>
+
+    {{-- Pagination --}}
+    @if($products->hasPages())
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:.85rem;color:var(--muted)">
+        <span>
+            Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }} products
+        </span>
+        <div style="display:flex;gap:6px">
+            {{-- Previous --}}
+            @if($products->onFirstPage())
+                <span style="padding:5px 10px;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:not-allowed">← Prev</span>
+            @else
+                <a href="{{ $products->previousPageUrl() }}" style="padding:5px 10px;border:1px solid var(--border);border-radius:3px;color:var(--text);text-decoration:none">← Prev</a>
+            @endif
+
+            {{-- Page numbers --}}
+            @foreach($products->getUrlRange(1, $products->lastPage()) as $page => $url)
+                @if($page == $products->currentPage())
+                    <span style="padding:5px 10px;border:1px solid var(--border);border-radius:3px;background:var(--primary,#7c3a1e);color:#fff;font-weight:600">{{ $page }}</span>
+                @else
+                    <a href="{{ $url }}" style="padding:5px 10px;border:1px solid var(--border);border-radius:3px;color:var(--text);text-decoration:none">{{ $page }}</a>
+                @endif
+            @endforeach
+
+            {{-- Next --}}
+            @if($products->hasMorePages())
+                <a href="{{ $products->nextPageUrl() }}" style="padding:5px 10px;border:1px solid var(--border);border-radius:3px;color:var(--text);text-decoration:none">Next →</a>
+            @else
+                <span style="padding:5px 10px;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:not-allowed">Next →</span>
+            @endif
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

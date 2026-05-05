@@ -15,18 +15,25 @@ class ProductController extends Controller
         return 'P' . str_pad($num, 3, '0', STR_PAD_LEFT);
     }
 
+    private function nextStockID(): string
+    {
+        $last = Stock::orderByDesc('stock_ID')->value('stock_ID');
+        $num  = $last ? ((int) substr($last, 2)) + 1 : 1;
+        return 'ST' . str_pad($num, 3, '0', STR_PAD_LEFT);
+    }
+
     public function index(Request $request)
     {
-        $query = Product::orderBy('product_ID');
+        $query = Product::orderBy('product_name');
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(function($q) use ($s) {
+            $query->where(function ($q) use ($s) {
                 $q->where('product_name', 'like', "%$s%")
                   ->orWhere('product_ID', 'like', "%$s%")
                   ->orWhere('p_unit', 'like', "%$s%");
             });
         }
-        $products = $query->get();
+        $products = $query->paginate(5)->withQueryString();
         return view('products.index', compact('products'));
     }
 
@@ -46,9 +53,8 @@ class ProductController extends Controller
         $id = $this->nextID();
         Product::create(array_merge(['product_ID' => $id], $data));
 
-        $stockNum = Stock::count() + 1;
         Stock::create([
-            'stock_ID'   => 'ST' . str_pad($stockNum, 3, '0', STR_PAD_LEFT),
+            'stock_ID'   => $this->nextStockID(),
             'product_ID' => $id,
             'quantity'   => 0,
         ]);

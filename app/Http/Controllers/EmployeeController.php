@@ -19,7 +19,7 @@ class EmployeeController extends Controller
         $query = Employee::orderBy('employee_ID');
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(function($q) use ($s) {
+            $query->where(function ($q) use ($s) {
                 $q->where('employee_Fname', 'like', "%$s%")
                   ->orWhere('employee_Lname', 'like', "%$s%")
                   ->orWhere('employee_ID', 'like', "%$s%")

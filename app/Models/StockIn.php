@@ -10,8 +10,8 @@ class StockIn extends Model
     protected $primaryKey = 'stockin_ID';
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['stockin_ID','date_added','employee_ID'];
+    protected $fillable = ['stockin_ID', 'date_added', 'employee_ID'];
 
-    public function employee() { return $this->belongsTo(Employee::class, 'employee_ID', 'employee_ID'); }
-    public function details() { return $this->hasMany(StockInDetail::class, 'stockin_ID', 'stockin_ID'); }
+    public function employee() { return $this->belongsTo(Employee::class,    'employee_ID', 'employee_ID'); }
+    public function details()  { return $this->hasMany(StockInDetail::class, 'stockin_ID',  'stockin_ID'); }
 }

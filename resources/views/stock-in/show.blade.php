@@ -9,11 +9,24 @@
     </p>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Detail ID</th><th>Product</th><th>Unit</th><th>Quantity</th><th>Cost/Unit</th><th>Total</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Detail ID</th>
+                    <th>Stock ID</th>
+                    <th>Product ID</th>
+                    <th>Product</th>
+                    <th>Unit</th>
+                    <th>Quantity</th>
+                    <th>Cost/Unit</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
             <tbody>
             @foreach($stockIn->details as $d)
             <tr>
                 <td>{{ $d->stockin_details_ID }}</td>
+                <td>{{ $d->product->stockRecord->stock_ID ?? '—' }}</td>
+                <td>{{ $d->product_ID }}</td>
                 <td>{{ $d->product->product_name }}</td>
                 <td>{{ $d->product->p_unit }}</td>
                 <td>{{ $d->quantity }}</td>
