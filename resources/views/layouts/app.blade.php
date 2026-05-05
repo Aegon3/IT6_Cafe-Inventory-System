@@ -108,6 +108,10 @@ tr:hover td{background:var(--accent-bg)}
         <div class="nav-sec">Records</div>
         <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.*') ? 'active' : '' }}">Products</a>
         <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">Employees</a>
+
+        <div class="nav-sec">Reports</div>
+        <a href="{{ route('reports.stock-summary') }}" class="{{ request()->routeIs('reports.stock-summary') ? 'active' : '' }}">Stock Summary</a>
+        <a href="{{ route('reports.stock-in-report') }}" class="{{ request()->routeIs('reports.stock-in-report') ? 'active' : '' }}">Stock In Report</a>
     </nav>
 </aside>
 

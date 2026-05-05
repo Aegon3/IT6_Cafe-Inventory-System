@@ -23,6 +23,22 @@
                     @endforeach
                 </select>
             </div>
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="text" name="contact_number" value="{{ old('contact_number', $employee->contact_number) }}">
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1">
+                <label>Address</label>
+                <input type="text" name="employee_address" value="{{ old('employee_address', $employee->employee_address) }}">
+            </div>
+            <div class="form-group">
+                <label>SSS Number</label>
+                <input type="text" name="sss_number" value="{{ old('sss_number', $employee->sss_number) }}">
+            </div>
+            <div class="form-group">
+                <label>PhilHealth Number</label>
+                <input type="text" name="philhealth_number" value="{{ old('philhealth_number', $employee->philhealth_number) }}">
+            </div>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Update Employee</button>

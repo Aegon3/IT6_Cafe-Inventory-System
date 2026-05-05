@@ -64,7 +64,7 @@ class StockOutController extends Controller
         foreach ($request->product_ID as $i => $pid) {
             $stock = Stock::where('product_ID', $pid)->first();
             if (!$stock || $stock->quantity < $request->quantity[$i]) {
-                return back()->withErrors(['quantity' => 'Insufficient stock for one or more items.'])->withInput();
+                return back()->withErrors(['quantity' => 'Insufficient stock: quantity would go negative.'])->withInput();
             }
         }
 

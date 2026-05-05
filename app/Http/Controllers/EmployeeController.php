@@ -38,9 +38,13 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'employee_Fname' => 'required|string|max:100',
-            'employee_Lname' => 'required|string|max:100',
-            'e_role'         => 'required|string|max:100',
+            'employee_Fname'    => 'required|string|max:100',
+            'employee_Lname'    => 'required|string|max:100',
+            'e_role'            => 'required|string|max:100',
+            'contact_number'    => 'nullable|string|max:20',
+            'employee_address'  => 'nullable|string|max:255',
+            'sss_number'        => 'nullable|string|max:20',
+            'philhealth_number' => 'nullable|string|max:20',
         ]);
         Employee::create(array_merge(['employee_ID' => $this->nextID()], $data));
         return redirect()->route('employees.index')->with('success', 'Employee added.');
@@ -54,9 +58,13 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $data = $request->validate([
-            'employee_Fname' => 'required|string|max:100',
-            'employee_Lname' => 'required|string|max:100',
-            'e_role'         => 'required|string|max:100',
+            'employee_Fname'    => 'required|string|max:100',
+            'employee_Lname'    => 'required|string|max:100',
+            'e_role'            => 'required|string|max:100',
+            'contact_number'    => 'nullable|string|max:20',
+            'employee_address'  => 'nullable|string|max:255',
+            'sss_number'        => 'nullable|string|max:20',
+            'philhealth_number' => 'nullable|string|max:20',
         ]);
         $employee->update($data);
         return redirect()->route('employees.index')->with('success', 'Employee updated.');

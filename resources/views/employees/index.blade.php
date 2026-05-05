@@ -17,7 +17,7 @@
     <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>ID</th><th>Full Name</th><th>Role</th><th>Actions</th></tr>
+                <tr><th>ID</th><th>Full Name</th><th>Role</th><th>Contact</th><th>Actions</th></tr>
             </thead>
             <tbody>
             @forelse($employees as $e)
@@ -25,6 +25,7 @@
                 <td>{{ $e->employee_ID }}</td>
                 <td>{{ $e->employee_Fname }} {{ $e->employee_Lname }}</td>
                 <td>{{ $e->e_role }}</td>
+                <td>{{ $e->contact_number ?? '—' }}</td>
                 <td>
                     <a href="{{ route('employees.edit', $e->employee_ID) }}" class="btn btn-secondary btn-sm">Edit</a>
                     <form method="POST" action="{{ route('employees.destroy', $e->employee_ID) }}" style="display:inline" onsubmit="return confirm('Delete this employee?')">
@@ -34,7 +35,7 @@
                 </td>
             </tr>
             @empty
-            <tr><td colspan="4" style="color:var(--muted)">{{ request('search') ? 'No employees matched your search.' : 'No employees found.' }}</td></tr>
+            <tr><td colspan="5" style="color:var(--muted)">{{ request('search') ? 'No employees matched your search.' : 'No employees found.' }}</td></tr>
             @endforelse
             </tbody>
         </table>
