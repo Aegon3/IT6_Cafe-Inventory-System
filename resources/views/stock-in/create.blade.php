@@ -14,14 +14,22 @@
             </div>
             <div class="form-group">
                 <label>Handled By</label>
-                <select name="employee_ID" required>
-                    <option value="">Select employee...</option>
-                    @foreach($employees as $e)
-                    <option value="{{ $e->employee_ID }}" {{ old('employee_ID') == $e->employee_ID ? 'selected' : '' }}>
-                        {{ $e->employee_Fname }} {{ $e->employee_Lname }} ({{ $e->e_role }})
-                    </option>
-                    @endforeach
-                </select>
+                @if($linkedEmployee)
+                    {{-- Auto-filled from logged-in user --}}
+                    <input type="text" value="{{ $linkedEmployee->employee_Fname }} {{ $linkedEmployee->employee_Lname }} ({{ $linkedEmployee->e_role }})" readonly>
+                    <input type="hidden" name="employee_ID" value="{{ $linkedEmployee->employee_ID }}">
+                    <span class="auto-filled-note">Auto-filled from your account</span>
+                @else
+                    {{-- Admin or unlinked user: choose manually --}}
+                    <select name="employee_ID" required>
+                        <option value="">Select employee...</option>
+                        @foreach($employees as $e)
+                        <option value="{{ $e->employee_ID }}" {{ old('employee_ID') == $e->employee_ID ? 'selected' : '' }}>
+                            {{ $e->employee_Fname }} {{ $e->employee_Lname }} ({{ $e->e_role }})
+                        </option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
         </div>
 
@@ -39,14 +47,11 @@
                     <button type="button" class="remove-row" onclick="removeRow(this)" style="margin-left:auto">✕</button>
                 </div>
 
-                {{-- Existing product --}}
                 <div class="existing-section" id="existing-0">
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Stock ID</label>
-                            <input type="text" id="existing_stock_id_0" readonly
-                                style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed"
-                                placeholder="Auto-filled">
+                            <input type="text" id="existing_stock_id_0" readonly placeholder="Auto-filled">
                         </div>
                         <div class="form-group">
                             <label>Product</label>
@@ -72,13 +77,11 @@
                     </div>
                 </div>
 
-                {{-- New product --}}
                 <div class="new-section" id="new-0" style="display:none">
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Stock ID</label>
-                            <input type="text" readonly value="(auto-assigned)"
-                                style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed">
+                            <input type="text" readonly value="(auto-assigned)">
                         </div>
                         <div class="form-group">
                             <label>Product Name</label>
@@ -145,15 +148,8 @@ function fillExisting(selectEl, idx) {
 }
 
 function toggleType(radio, idx) {
-    const existingEl = document.getElementById('existing-' + idx);
-    const newEl      = document.getElementById('new-' + idx);
-    if (radio.value === 'existing') {
-        existingEl.style.display = '';
-        newEl.style.display      = 'none';
-    } else {
-        existingEl.style.display = 'none';
-        newEl.style.display      = '';
-    }
+    document.getElementById('existing-' + idx).style.display = radio.value === 'existing' ? '' : 'none';
+    document.getElementById('new-' + idx).style.display      = radio.value === 'new'      ? '' : 'none';
 }
 
 function addRow() {
@@ -178,9 +174,7 @@ function addRow() {
             <div class="form-grid">
                 <div class="form-group">
                     <label>Stock ID</label>
-                    <input type="text" id="existing_stock_id_${idx}" readonly
-                        style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed"
-                        placeholder="Auto-filled">
+                    <input type="text" id="existing_stock_id_${idx}" readonly placeholder="Auto-filled">
                 </div>
                 <div class="form-group">
                     <label>Product</label>
@@ -203,8 +197,7 @@ function addRow() {
             <div class="form-grid">
                 <div class="form-group">
                     <label>Stock ID</label>
-                    <input type="text" readonly value="(auto-assigned)"
-                        style="background:var(--bg-muted,#f5f5f5);color:var(--muted);cursor:not-allowed">
+                    <input type="text" readonly value="(auto-assigned)">
                 </div>
                 <div class="form-group">
                     <label>Product Name</label>

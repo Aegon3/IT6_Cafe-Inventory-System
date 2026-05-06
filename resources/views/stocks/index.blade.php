@@ -36,6 +36,7 @@
             </thead>
             <tbody>
             @forelse($stocks as $s)
+            @if(!$s->product) @continue @endif
             <tr>
                 <td>{{ $s->stock_ID }}</td>
                 <td>{{ $s->product->product_name }}</td>

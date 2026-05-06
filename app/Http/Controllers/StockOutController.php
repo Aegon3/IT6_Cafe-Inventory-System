@@ -26,6 +26,15 @@ class StockOutController extends Controller
         return 'SOD' . str_pad($n, 4, '0', STR_PAD_LEFT);
     }
 
+    private function loggedInEmployee(): ?Employee
+    {
+        $user = auth()->user();
+        if ($user && $user->employee_ID) {
+            return Employee::find($user->employee_ID);
+        }
+        return null;
+    }
+
     public function index(Request $request)
     {
         $query = StockOut::with(['employee', 'details'])->orderByDesc('date_issuance');
@@ -46,9 +55,10 @@ class StockOutController extends Controller
 
     public function create()
     {
-        $employees = Employee::orderBy('employee_Fname')->get();
-        $products  = Product::with('stock')->orderBy('product_name')->get();
-        return view('stock-out.create', compact('employees', 'products'));
+        $employees      = Employee::orderBy('employee_Fname')->get();
+        $products       = Product::with('stock')->orderBy('product_name')->get();
+        $linkedEmployee = $this->loggedInEmployee();
+        return view('stock-out.create', compact('employees', 'products', 'linkedEmployee'));
     }
 
     public function store(Request $request)
@@ -98,8 +108,9 @@ class StockOutController extends Controller
     public function edit(StockOut $stockOut)
     {
         $stockOut->load(['employee', 'details.product']);
-        $employees = Employee::orderBy('employee_Fname')->get();
-        return view('stock-out.edit', compact('stockOut', 'employees'));
+        $employees      = Employee::orderBy('employee_Fname')->get();
+        $linkedEmployee = $this->loggedInEmployee();
+        return view('stock-out.edit', compact('stockOut', 'employees', 'linkedEmployee'));
     }
 
     public function update(Request $request, StockOut $stockOut)

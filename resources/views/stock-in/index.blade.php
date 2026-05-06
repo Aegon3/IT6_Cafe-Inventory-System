@@ -22,7 +22,7 @@
             <tr>
                 <td>{{ $r->stockin_ID }}</td>
                 <td>{{ $r->date_added }}</td>
-                <td>{{ $r->employee->full_name }}</td>
+                <td>{{ $r->employee?->full_name ?? 'Unknown' }}</td>
                 <td>{{ $r->details->count() }} item(s)</td>
                 <td>
                     <a href="{{ route('stock-in.show', $r->stockin_ID) }}" class="btn btn-secondary btn-sm">View</a>

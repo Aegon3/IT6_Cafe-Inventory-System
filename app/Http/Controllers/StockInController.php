@@ -40,6 +40,16 @@ class StockInController extends Controller
         return 'ST' . str_pad($n, 3, '0', STR_PAD_LEFT);
     }
 
+    /** Get the employee linked to the current logged-in user, or null */
+    private function loggedInEmployee(): ?Employee
+    {
+        $user = auth()->user();
+        if ($user && $user->employee_ID) {
+            return Employee::find($user->employee_ID);
+        }
+        return null;
+    }
+
     public function index(Request $request)
     {
         $query = StockIn::with(['employee', 'details'])->orderByDesc('date_added');
@@ -60,10 +70,11 @@ class StockInController extends Controller
 
     public function create()
     {
-        $employees = Employee::orderBy('employee_Fname')->get();
-        $products  = Product::orderBy('product_name')->get();
-        $stockMap  = Stock::all()->keyBy('product_ID');
-        return view('stock-in.create', compact('employees', 'products', 'stockMap'));
+        $employees      = Employee::orderBy('employee_Fname')->get();
+        $products       = Product::orderBy('product_name')->get();
+        $stockMap       = Stock::all()->keyBy('product_ID');
+        $linkedEmployee = $this->loggedInEmployee();
+        return view('stock-in.create', compact('employees', 'products', 'stockMap', 'linkedEmployee'));
     }
 
     public function store(Request $request)
@@ -127,8 +138,9 @@ class StockInController extends Controller
     public function edit(StockIn $stockIn)
     {
         $stockIn->load(['employee', 'details.product']);
-        $employees = Employee::orderBy('employee_Fname')->get();
-        return view('stock-in.edit', compact('stockIn', 'employees'));
+        $employees      = Employee::orderBy('employee_Fname')->get();
+        $linkedEmployee = $this->loggedInEmployee();
+        return view('stock-in.edit', compact('stockIn', 'employees', 'linkedEmployee'));
     }
 
     public function update(Request $request, StockIn $stockIn)

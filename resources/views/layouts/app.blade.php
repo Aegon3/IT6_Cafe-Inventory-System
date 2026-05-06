@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="{{ asset('favicon.ico') }}">
-<title>@yield('title', 'Cafe Dampog') — Inventory</title>
+<title>@yield('title', 'Cafe') — Inventory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
@@ -27,6 +27,13 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--tex
 .sb-nav a{display:block;padding:9px 20px;color:#b0a090;text-decoration:none;font-size:.85rem;transition:background .15s,color .15s;border-left:3px solid transparent}
 .sb-nav a:hover{background:rgba(255,255,255,.05);color:#f0e8d8}
 .sb-nav a.active{background:rgba(139,69,19,.25);color:#f5e8d0;border-left-color:var(--accent-l)}
+
+/* User info at bottom of sidebar */
+.sb-user{padding:14px 20px;border-top:1px solid rgba(255,255,255,.1);font-size:.78rem}
+.sb-user .user-name{color:#f0e8d8;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user .user-role{color:#a09070;font-size:.7rem;margin-top:2px}
+.sb-user form button{margin-top:10px;width:100%;background:rgba(139,69,19,.25);border:1px solid rgba(139,69,19,.4);color:#f0e8d8;padding:6px;font-size:.75rem;font-family:'Source Sans 3',sans-serif;border-radius:3px;cursor:pointer;letter-spacing:.04em;transition:background .15s}
+.sb-user form button:hover{background:rgba(139,69,19,.5)}
 
 /* Main */
 .main{margin-left:var(--nav);flex:1;min-height:100vh;display:flex;flex-direction:column}
@@ -69,6 +76,7 @@ tr:hover td{background:var(--accent-bg)}
 .form-group label{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
 .form-group input,.form-group select,.form-group textarea{padding:8px 10px;border:1px solid var(--border);border-radius:3px;font-size:.88rem;font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s}
 .form-group input:focus,.form-group select:focus{border-color:var(--accent-l)}
+.form-group input[readonly]{background:#ede9e0;color:var(--muted);cursor:not-allowed}
 .form-actions{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
 
 /* Alerts */
@@ -80,6 +88,8 @@ tr:hover td{background:var(--accent-bg)}
 .badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 .badge-low{background:#fdeaea;color:var(--danger)}
 .badge-ok{background:#edf7ed;color:var(--success)}
+.badge-admin{background:rgba(139,69,19,.15);color:var(--accent);border:1px solid rgba(139,69,19,.3)}
+.badge-staff{background:#f0f0f0;color:var(--muted);border:1px solid var(--border)}
 
 /* Detail rows for stock in/out */
 .detail-row{display:grid;grid-template-columns:1fr 120px 130px 30px;gap:10px;align-items:end;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--border)}
@@ -87,13 +97,16 @@ tr:hover td{background:var(--accent-bg)}
 .add-row-btn{background:none;border:1px dashed var(--border);padding:7px 14px;cursor:pointer;font-size:.82rem;color:var(--muted);border-radius:3px;margin-top:8px;font-family:'Source Sans 3',sans-serif}
 .add-row-btn:hover{border-color:var(--accent);color:var(--accent)}
 .remove-row{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:0 4px;line-height:1}
+
+/* Auto-filled indicator */
+.auto-filled-note{font-size:.72rem;color:var(--accent);margin-top:3px;font-style:italic}
 </style>
 </head>
 <body>
 
 <aside class="sidebar">
     <div class="sb-brand">
-        <h1>Cafe Dampog</h1>
+        <h1>Cafe</h1>
         <p>Inventory System</p>
     </div>
     <nav class="sb-nav">
@@ -107,17 +120,45 @@ tr:hover td{background:var(--accent-bg)}
 
         <div class="nav-sec">Records</div>
         <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.*') ? 'active' : '' }}">Products</a>
+
+        @auth
+        @if(auth()->user()->is_admin)
         <a href="{{ route('employees.index') }}" class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">Employees</a>
+
+        <div class="nav-sec">Admin</div>
+        <a href="{{ route('accounts.index') }}" class="{{ request()->routeIs('accounts.*') ? 'active' : '' }}">User Accounts</a>
+        @endif
+        @endauth
 
         <div class="nav-sec">Reports</div>
         <a href="{{ route('reports.stock-summary') }}" class="{{ request()->routeIs('reports.stock-summary') ? 'active' : '' }}">Stock Summary</a>
         <a href="{{ route('reports.stock-in-report') }}" class="{{ request()->routeIs('reports.stock-in-report') ? 'active' : '' }}">Stock In Report</a>
     </nav>
+
+    @auth
+    <div class="sb-user">
+        <div class="user-name">{{ auth()->user()->name }}</div>
+        <div class="user-role">
+            @if(auth()->user()->is_admin)
+                Administrator
+            @elseif(auth()->user()->employee)
+                {{ auth()->user()->employee->e_role }}
+            @else
+                Staff
+            @endif
+        </div>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit">Sign Out</button>
+        </form>
+    </div>
+    @endauth
 </aside>
 
 <div class="main">
     <div class="topbar">
         <h2>@yield('title', 'Dashboard')</h2>
+        <span class="date">{{ now()->format('F j, Y') }}</span>
     </div>
     <div class="content">
         @if(session('success'))

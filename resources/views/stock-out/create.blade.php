@@ -13,14 +13,20 @@
             </div>
             <div class="form-group">
                 <label>Handled By</label>
-                <select name="employee_ID" required>
-                    <option value="">Select employee...</option>
-                    @foreach($employees as $e)
-                    <option value="{{ $e->employee_ID }}" {{ old('employee_ID') == $e->employee_ID ? 'selected' : '' }}>
-                        {{ $e->employee_Fname }} {{ $e->employee_Lname }} ({{ $e->e_role }})
-                    </option>
-                    @endforeach
-                </select>
+                @if($linkedEmployee)
+                    <input type="text" value="{{ $linkedEmployee->employee_Fname }} {{ $linkedEmployee->employee_Lname }} ({{ $linkedEmployee->e_role }})" readonly>
+                    <input type="hidden" name="employee_ID" value="{{ $linkedEmployee->employee_ID }}">
+                    <span class="auto-filled-note">Auto-filled from your account</span>
+                @else
+                    <select name="employee_ID" required>
+                        <option value="">Select employee...</option>
+                        @foreach($employees as $e)
+                        <option value="{{ $e->employee_ID }}" {{ old('employee_ID') == $e->employee_ID ? 'selected' : '' }}>
+                            {{ $e->employee_Fname }} {{ $e->employee_Lname }} ({{ $e->e_role }})
+                        </option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
         </div>
 
@@ -43,7 +49,7 @@
                     <input type="number" name="quantity[]" min="1" required>
                 </div>
                 <div style="padding-top:22px">
-                    <button type="button" class="remove-row" onclick="removeRow(this)">x</button>
+                    <button type="button" class="remove-row" onclick="removeRow(this)">✕</button>
                 </div>
             </div>
         </div>
@@ -67,7 +73,7 @@ function addRow() {
         <div class="form-group"><label>Product</label>
         <select name="product_ID[]" required><option value="">Select product...</option>${opts}</select></div>
         <div class="form-group"><label>Quantity</label><input type="number" name="quantity[]" min="1" required></div>
-        <div style="padding-top:22px"><button type="button" class="remove-row" onclick="removeRow(this)">x</button></div>`;
+        <div style="padding-top:22px"><button type="button" class="remove-row" onclick="removeRow(this)">✕</button></div>`;
     wrap.appendChild(div);
 }
 function removeRow(btn) {

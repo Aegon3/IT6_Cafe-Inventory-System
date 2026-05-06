@@ -13,14 +13,20 @@
             </div>
             <div class="form-group">
                 <label>Handled By</label>
-                <select name="employee_ID" required>
-                    <option value="">Select employee...</option>
-                    @foreach($employees as $e)
-                    <option value="{{ $e->employee_ID }}" {{ $stockIn->employee_ID == $e->employee_ID ? 'selected' : '' }}>
-                        {{ $e->employee_Fname }} {{ $e->employee_Lname }} ({{ $e->e_role }})
-                    </option>
-                    @endforeach
-                </select>
+                @if($linkedEmployee)
+                    <input type="text" value="{{ $linkedEmployee->employee_Fname }} {{ $linkedEmployee->employee_Lname }} ({{ $linkedEmployee->e_role }})" readonly>
+                    <input type="hidden" name="employee_ID" value="{{ $linkedEmployee->employee_ID }}">
+                    <span class="auto-filled-note">Auto-filled from your account</span>
+                @else
+                    <select name="employee_ID" required>
+                        <option value="">Select employee...</option>
+                        @foreach($employees as $e)
+                        <option value="{{ $e->employee_ID }}" {{ $stockIn->employee_ID == $e->employee_ID ? 'selected' : '' }}>
+                            {{ $e->employee_Fname }} {{ $e->employee_Lname }} ({{ $e->e_role }})
+                        </option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
         </div>
 

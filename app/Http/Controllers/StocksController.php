@@ -10,8 +10,8 @@ class StocksController extends Controller
     public function index()
     {
         $stocks     = Stock::with('product')->orderBy('stock_ID')->get();
-        $totalValue = $stocks->sum(fn($s) => $s->quantity * $s->product->unit_price);
-        $lowCount   = $stocks->filter(fn($s) => $s->quantity < $s->min_stock)->count();
+        $totalValue = $stocks->sum(fn($s) => $s->quantity * ($s->product->unit_price ?? 0));
+        $lowCount   = $stocks->filter(fn($s) => $s->product && $s->quantity < $s->min_stock)->count();
         return view('stocks.index', compact('stocks', 'totalValue', 'lowCount'));
     }
 
